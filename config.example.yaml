@@ -1,0 +1,23 @@
+# Copy to config.yaml and fill in. Used by the server-side runs (scripts 01 & 02).
+# ${VAR} is expanded from the environment at load time (keep secrets out of git).
+
+gemini:                         # golden labeler (audio + transcript)
+  model: gemini-3-pro
+  api_key: ${GEMINI_API_KEY}
+  temperature: 0.0
+  send_audio: true              # set false for the "text-only Gemini" ablation
+  max_turns_per_window: 40
+  context_turns: 10
+
+qwen:                           # candidate labeler (transcript only)
+  model: Qwen3-32B
+  base_url: http://localhost:8000/v1     # vLLM: `vllm serve Qwen/Qwen3-32B`
+  api_key: ${QWEN_API_KEY}               # any string for local vLLM; real key for DashScope
+  temperature: 0.0
+  max_turns_per_window: 40
+  context_turns: 10
+
+# Pre-register these BEFORE looking at results (avoids post-hoc goalpost moving).
+eval:
+  accept_kappa: 0.75            # overall chance-corrected agreement to "trust Qwen"
+  accept_exact_match: 0.80      # overall exact-set-match accuracy

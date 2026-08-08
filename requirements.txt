@@ -1,0 +1,11 @@
+# --- Offline core (evaluation, demo, tests) ---
+# NONE required. The schema, windowing, parsing, evaluation, demo and tests run
+# on the Python standard library alone.
+
+# --- Only needed when running against real models on the server ---
+google-genai>=0.3     # golden labeler: Gemini 3 Pro (audio + transcript)
+openai>=1.30          # candidate labeler: Qwen via any OpenAI-compatible endpoint
+PyYAML>=6.0           # config loading (src/config.py)
+
+# --- Optional, only if you self-host Qwen with vLLM on the server ---
+# vllm>=0.6           # `vllm serve Qwen/Qwen3-32B` (downloads weights ON THE SERVER)

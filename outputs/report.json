@@ -1,0 +1,168 @@
+{
+  "result": {
+    "n_conversations": 3,
+    "n_scored_turns": 20,
+    "strata": {
+      "overall": {
+        "n": 20,
+        "exact_match": 0.85,
+        "mean_jaccard": 0.85,
+        "single_addressee_accuracy": 0.8947368421052632,
+        "cohen_kappa": 0.8628158844765343,
+        "macro_f1": 0.8469696969696969,
+        "micro_f1": 0.8292682926829269,
+        "n_single": 19
+      },
+      "two_party (n_speakers<=2)": {
+        "n": 6,
+        "exact_match": 1.0,
+        "mean_jaccard": 1.0,
+        "single_addressee_accuracy": 1.0,
+        "cohen_kappa": 1.0,
+        "macro_f1": 1.0,
+        "micro_f1": 1.0,
+        "n_single": 6
+      },
+      "multi_party (n_speakers>=3)": {
+        "n": 14,
+        "exact_match": 0.7857142857142857,
+        "mean_jaccard": 0.7857142857142857,
+        "single_addressee_accuracy": 0.8461538461538461,
+        "cohen_kappa": 0.8000000000000002,
+        "macro_f1": 0.8033333333333333,
+        "micro_f1": 0.7586206896551724,
+        "n_single": 13
+      },
+      "overlap_turns": {
+        "n": 2,
+        "exact_match": 0.5,
+        "mean_jaccard": 0.5,
+        "single_addressee_accuracy": 0.5,
+        "cohen_kappa": 0.3333333333333333,
+        "macro_f1": 0.3333333333333333,
+        "micro_f1": 0.5,
+        "n_single": 2
+      },
+      "non_overlap_turns": {
+        "n": 18,
+        "exact_match": 0.8888888888888888,
+        "mean_jaccard": 0.8888888888888888,
+        "single_addressee_accuracy": 0.9411764705882353,
+        "cohen_kappa": 0.9234234234234234,
+        "macro_f1": 0.881024531024531,
+        "micro_f1": 0.8648648648648649,
+        "n_single": 17
+      },
+      "backchannels": {
+        "n": 2,
+        "exact_match": 1.0,
+        "mean_jaccard": 1.0,
+        "single_addressee_accuracy": 1.0,
+        "cohen_kappa": 1.0,
+        "macro_f1": 1.0,
+        "micro_f1": 1.0,
+        "n_single": 2
+      }
+    },
+    "per_class": {
+      "Alice": {
+        "precision": 0.8333333333333334,
+        "recall": 1.0,
+        "f1": 0.9090909090909091,
+        "support": 5,
+        "tp": 5,
+        "fp": 1,
+        "fn": 0
+      },
+      "Bob": {
+        "precision": 1.0,
+        "recall": 0.8333333333333334,
+        "f1": 0.9090909090909091,
+        "support": 6,
+        "tp": 5,
+        "fp": 0,
+        "fn": 1
+      },
+      "Carol": {
+        "precision": 1.0,
+        "recall": 0.6,
+        "f1": 0.7499999999999999,
+        "support": 5,
+        "tp": 3,
+        "fp": 0,
+        "fn": 2
+      },
+      "Dave": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 1,
+        "tp": 1,
+        "fp": 0,
+        "fn": 0
+      },
+      "GROUP": {
+        "precision": 0.6,
+        "recall": 0.75,
+        "f1": 0.6666666666666665,
+        "support": 4,
+        "tp": 3,
+        "fp": 2,
+        "fn": 1
+      }
+    },
+    "confusion_single_addressee": {
+      "labels": [
+        "Alice",
+        "Bob",
+        "Carol",
+        "Dave",
+        "GROUP"
+      ],
+      "matrix": [
+        [
+          5,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          5,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          3,
+          0,
+          1
+        ],
+        [
+          0,
+          0,
+          0,
+          1,
+          0
+        ],
+        [
+          1,
+          0,
+          0,
+          0,
+          3
+        ]
+      ]
+    }
+  },
+  "acceptance": {
+    "passed": true,
+    "cohen_kappa": 0.8628158844765343,
+    "accept_kappa": 0.75,
+    "exact_match": 0.85,
+    "accept_exact_match": 0.8
+  }
+}

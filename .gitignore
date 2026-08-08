@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+config.yaml
+# outputs/ holds the committed "played-model" demo labels + report (see README §5).
+# Real server runs overwrite these; commit or ignore them as you prefer.
+data/**/audio/
+*.wav
+*.flac
+.env
+.venv/
