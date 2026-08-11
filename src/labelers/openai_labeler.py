@@ -114,7 +114,18 @@ class OpenAIGoldenLabeler(AddresseeLabeler):
             kwargs["modalities"] = ["text"]
 
         try:
-            response = client.chat.completions.create(**kwargs)
+            try:
+                response = client.chat.completions.create(**kwargs)
+            except Exception as e:
+                # Reasoning-family models (o1/o3/gpt-5-style) reject any custom
+                # temperature and only accept their default (1) — retry without it
+                # rather than requiring every caller to know which models these are.
+                msg = str(e).lower()
+                if "temperature" in kwargs and "temperature" in msg and "unsupported" in msg:
+                    kwargs.pop("temperature")
+                    response = client.chat.completions.create(**kwargs)
+                else:
+                    raise
             raw = response.choices[0].message.content or ""
             return parse_label_response(raw, conv, target_ids, self.name)
         finally:
