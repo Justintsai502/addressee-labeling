@@ -97,17 +97,24 @@ class OpenAIGoldenLabeler(AddresseeLabeler):
                 "input_audio": {"data": b64, "format": self.audio_format},
             })
 
+        # 'modalities' only exists on audio-output-capable chat models (the
+        # gpt-4o-audio-preview family) and is REJECTED as an unknown parameter by
+        # plain text/vision models — only send it when we're actually attaching
+        # audio input, to keep it safely off text-only (--no-audio) requests.
+        kwargs = dict(
+            model=self.model,
+            temperature=self.temperature,
+            messages=[
+                {"role": "system", "content": GOLDEN_SYSTEM},
+                {"role": "user", "content": content},
+            ],
+            response_format={"type": "json_object"},
+        )
+        if self._audio_path:
+            kwargs["modalities"] = ["text"]
+
         try:
-            response = client.chat.completions.create(
-                model=self.model,
-                temperature=self.temperature,
-                modalities=["text"],
-                messages=[
-                    {"role": "system", "content": GOLDEN_SYSTEM},
-                    {"role": "user", "content": content},
-                ],
-                response_format={"type": "json_object"},
-            )
+            response = client.chat.completions.create(**kwargs)
             raw = response.choices[0].message.content or ""
             return parse_label_response(raw, conv, target_ids, self.name)
         finally:
