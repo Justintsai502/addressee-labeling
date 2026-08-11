@@ -26,7 +26,7 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--conversations", required=True)
     ap.add_argument("--out", default="outputs/golden.jsonl")
-    ap.add_argument("--model", default="gemini-3-pro")
+    ap.add_argument("--model", default="gemini-3.1-pro-preview")
     ap.add_argument("--max-turns-per-window", type=int, default=40)
     ap.add_argument("--context-turns", type=int, default=10)
     ap.add_argument("--no-audio", action="store_true",

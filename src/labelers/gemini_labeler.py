@@ -14,6 +14,14 @@ not free, so run it only on the sampled golden subset, not the full corpus.
 Audio handling: by default each transcript *window* is cut to its own time span
 (`slice_audio=True`) so a 30-minute meeting is not re-uploaded whole on every call.
 Set `slice_audio=False` to upload the entire file once (fine for short clips).
+
+Model id note: Google renames/retires preview model ids frequently (there were 50+
+"gemini-*" entries at time of writing, many dated/preview). If you get a 404 on the
+configured model, list what's actually available to your key:
+
+    python3 -c "from google import genai; [print(m.name) for m in genai.Client().models.list()]"
+
+then pass the correct id explicitly with --model.
 """
 
 from __future__ import annotations
@@ -33,7 +41,7 @@ from .base import AddresseeLabeler
 class GeminiGoldenLabeler(AddresseeLabeler):
     def __init__(
         self,
-        model: str = "gemini-3-pro",
+        model: str = "gemini-3.1-pro-preview",
         api_key: Optional[str] = None,
         temperature: float = 0.0,
         max_turns_per_window: int = 40,
