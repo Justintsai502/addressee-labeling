@@ -141,10 +141,15 @@ bash scripts/download_ami.sh ES2002a ES2002b     # 產生 data/ami/conversations
 export GEMINI_API_KEY=...
 python3 scripts/01_build_golden.py --conversations data/ami/conversations.jsonl --out outputs/golden.jsonl
 
-# ② candidate：自架 Qwen（權重下載在 server 上發生）
-vllm serve Qwen/Qwen3-32B --port 8000
-python3 scripts/02_run_candidate.py --conversations data/golden_sample.jsonl \
-    --out outputs/candidate.jsonl --base-url http://localhost:8000/v1 --api-key EMPTY
+# ② candidate：下載模型、in-process 載入跑（--backend local，換模型只要換 --model）
+python3 scripts/02_run_candidate.py --backend local --model Qwen/Qwen3-32B \
+    --conversations data/ami/conversations.jsonl --out outputs/candidate.jsonl
+#   想換模型比較，改 --model 即可（權重會下載到 ~/.cache/huggingface）：
+#     --model Qwen/Qwen3-8B
+#     --model meta-llama/Llama-3.1-8B-Instruct
+#     --engine hf            # vllm 載不動某些模型時的萬用後備
+#   多卡：--tensor-parallel-size 2
+#   （或 --backend endpoint 走 vllm serve / DashScope 的 HTTP endpoint）
 
 # ③ 比對
 python3 scripts/03_evaluate.py --conversations data/golden_sample.jsonl \
@@ -179,7 +184,8 @@ addressee-labeling/
 │   └── labelers/
 │       ├── base.py               ← AddresseeLabeler 抽象類 + window template method
 │       ├── gemini_labeler.py     ← Gemini 3 Pro，audio+transcript，按 window 切片（server）
-│       ├── qwen_labeler.py       ← Qwen，transcript only，OpenAI-相容 endpoint（server）
+│       ├── qwen_labeler.py       ← candidate，OpenAI-相容 endpoint（vllm serve / DashScope）
+│       ├── local_labeler.py      ← candidate，下載權重 in-process 載入（vllm/hf，換模型用）
 │       └── mock_labeler.py       ← 離線 heuristic（demo / 測試用，無 LLM）
 ├── scripts/
 │   ├── download_ami.sh           ← 下載 AMI 音檔+標註並轉檔
