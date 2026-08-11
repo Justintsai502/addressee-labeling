@@ -16,9 +16,10 @@ __all__ = ["AddresseeLabeler", "MockHeuristicLabeler", "get_labeler"]
 
 
 def get_labeler(kind: str, **kwargs: Any) -> AddresseeLabeler:
-    """Factory: 'gemini' | 'qwen' | 'local' | 'mock'.
+    """Factory: 'gemini' | 'openai' | 'qwen' | 'local' | 'mock'.
 
     - 'gemini' : golden labeler, Gemini API, audio+transcript.
+    - 'openai' : golden labeler alternative, OpenAI audio-capable chat model.
     - 'qwen'   : candidate via an OpenAI-compatible endpoint (vllm serve / DashScope).
     - 'local'  : candidate via locally DOWNLOADED weights (vllm/hf) — swap models by id.
     - 'mock'   : offline heuristic, no model.
@@ -28,6 +29,10 @@ def get_labeler(kind: str, **kwargs: Any) -> AddresseeLabeler:
         from .gemini_labeler import GeminiGoldenLabeler
 
         return GeminiGoldenLabeler(**kwargs)
+    if kind in ("openai", "gpt"):
+        from .openai_labeler import OpenAIGoldenLabeler
+
+        return OpenAIGoldenLabeler(**kwargs)
     if kind in ("qwen", "endpoint", "candidate"):
         from .qwen_labeler import QwenCandidateLabeler
 
