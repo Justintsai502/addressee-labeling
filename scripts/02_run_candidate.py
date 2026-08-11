@@ -48,6 +48,10 @@ def main() -> None:
     ap.add_argument("--max-model-len", type=int, default=None)
     ap.add_argument("--tensor-parallel-size", type=int, default=1, help="#GPUs (vllm)")
     ap.add_argument("--gpu-memory-utilization", type=float, default=0.90)
+    ap.add_argument("--max-new-tokens", type=int, default=4096,
+                    help="thinking models (Qwen3) spend part of this on a "
+                         "<think> trace before the answer — raise if you see "
+                         "truncated/unclosed <think> errors")
     # endpoint backend
     ap.add_argument("--base-url", default="http://localhost:8000/v1")
     ap.add_argument("--api-key", default="EMPTY")
@@ -60,6 +64,7 @@ def main() -> None:
             model=args.model,
             backend=args.engine,
             temperature=args.temperature,
+            max_new_tokens=args.max_new_tokens,
             dtype=args.dtype,
             max_model_len=args.max_model_len,
             tensor_parallel_size=args.tensor_parallel_size,

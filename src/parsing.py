@@ -17,6 +17,17 @@ from .schema import AddresseeLabel, Conversation, UNKNOWN
 def _extract_json_blob(text: str) -> str:
     """Pull the first balanced {...} or [...] out of a raw model response."""
     text = text.strip()
+    # Reasoning models (Qwen3, and similar) emit a <think>...</think> block
+    # before the real answer. Strip it first so stray braces in the reasoning
+    # prose are never mistaken for the JSON answer.
+    think_close = text.rfind("</think>")
+    if think_close != -1:
+        text = text[think_close + len("</think>"):].strip()
+    elif text.lstrip().startswith("<think>"):
+        raise ValueError(
+            "model output is an unclosed <think> block with no answer after it — "
+            "likely ran out of max_new_tokens before finishing; got: " + text[:200]
+        )
     # Strip code fences if present.
     fence = re.search(r"```(?:json)?\s*(.*?)```", text, re.DOTALL)
     if fence:
