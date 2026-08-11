@@ -133,9 +133,13 @@ python3 scripts/03_evaluate.py \
 ```bash
 pip install -r requirements.txt          # google-genai, openai, pyyaml
 
+# ⓪ 準備真資料（AMI：下載音檔+標註→轉成 conversations.jsonl；資料大且有授權，已 gitignore）
+bash scripts/download_ami.sh ES2002a ES2002b     # 產生 data/ami/conversations.jsonl
+
 # ① golden：Gemini（Google API，不需下載權重，但 audio token 要錢 → 只跑抽樣子集）
+#    Gemini labeler 會照 window 把音檔切片再上傳（slice_audio 預設開），長會議不會重送整段。
 export GEMINI_API_KEY=...
-python3 scripts/01_build_golden.py --conversations data/golden_sample.jsonl --out outputs/golden.jsonl
+python3 scripts/01_build_golden.py --conversations data/ami/conversations.jsonl --out outputs/golden.jsonl
 
 # ② candidate：自架 Qwen（權重下載在 server 上發生）
 vllm serve Qwen/Qwen3-32B --port 8000
@@ -170,14 +174,19 @@ addressee-labeling/
 │   ├── parsing.py                ← 穩健解析模型輸出 + 驗證 addressee 合法性
 │   ├── evaluate.py               ← 全部指標（純 Python，無依賴）
 │   ├── pipeline.py               ← 跑 labeler + 存檔
+│   ├── audio_utils.py            ← ffmpeg 音檔切片（golden 按 window 切，長會議不重送）
 │   ├── config.py                 ← YAML 設定（${ENV} 展開）
 │   └── labelers/
 │       ├── base.py               ← AddresseeLabeler 抽象類 + window template method
-│       ├── gemini_labeler.py     ← Gemini 3 Pro，audio+transcript（server）
+│       ├── gemini_labeler.py     ← Gemini 3 Pro，audio+transcript，按 window 切片（server）
 │       ├── qwen_labeler.py       ← Qwen，transcript only，OpenAI-相容 endpoint（server）
 │       └── mock_labeler.py       ← 離線 heuristic（demo / 測試用，無 LLM）
-├── scripts/                      ← 01 建 golden / 02 跑 candidate / 03 評估
+├── scripts/
+│   ├── download_ami.sh           ← 下載 AMI 音檔+標註並轉檔
+│   ├── 00_prepare_ami.py         ← AMI NXT XML → conversations.jsonl
+│   └── 01_build_golden / 02_run_candidate / 03_evaluate
 ├── data/sample/conversations.jsonl  ← 3 段合成對話（dyadic/triad/quad，含難 case）
+├── data/ami/                     ← 真 AMI 資料（gitignored，用 download_ami.sh 重建）
 ├── outputs/                      ← 「扮演模型」的 golden/candidate 標註 + 評估報表
 └── tests/test_pipeline.py        ← 純 Python 單元測試
 ```

@@ -32,6 +32,26 @@ Three tiny synthetic conversations (dyadic / triad / quad) used by `run_demo.py`
 and the tests. No audio files are shipped; the sample is transcript-only, which is
 all the offline code needs.
 
+## AMI corpus (`data/ami/`, gitignored)
+
+Real multi-party meetings (4 speakers, lots of overlap) — a good stress test for
+addressee labeling. The data is large and license-attributed (CC-BY 4.0, © Univ. of
+Edinburgh), so it is **gitignored and never committed**; regenerate it with:
+
+```bash
+bash scripts/download_ami.sh ES2002a ES2002b
+```
+
+This downloads the Mix-Headset audio + manual annotations and runs
+`scripts/00_prepare_ami.py`, which parses the AMI NXT XML (per-speaker `words/` +
+`segments/`) into `data/ami/conversations.jsonl` in the format above. Speaker ids are
+the AMI agent letters (A/B/C/D); note participants self-introduce by name
+("I'm Laura, the project manager"), which the model can use to map names → ids.
+
+Observed on the sample: ES2002a ≈ 236 turns / 75% overlap / 18.5 min; ES2002b ≈ 432
+turns / 89% overlap / 36 min. The high overlap is exactly why the golden labeler
+needs audio.
+
 ## Building the golden sample (server)
 
 Sample **stratified** by number of active speakers and by overlap, so the golden

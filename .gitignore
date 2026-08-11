@@ -6,5 +6,8 @@ config.yaml
 data/**/audio/
 *.wav
 *.flac
+# AMI corpus data is large and license-restricted — never commit it. Regenerate
+# with scripts/00_prepare_ami.py after downloading (see data/README.md).
+data/ami/
 .env
 .venv/
