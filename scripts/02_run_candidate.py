@@ -48,10 +48,11 @@ def main() -> None:
     ap.add_argument("--max-model-len", type=int, default=None)
     ap.add_argument("--tensor-parallel-size", type=int, default=1, help="#GPUs (vllm)")
     ap.add_argument("--gpu-memory-utilization", type=float, default=0.90)
-    ap.add_argument("--max-new-tokens", type=int, default=4096,
+    ap.add_argument("--max-new-tokens", type=int, default=8192,
                     help="thinking models (Qwen3) spend part of this on a "
-                         "<think> trace before the answer — raise if you see "
-                         "truncated/unclosed <think> errors")
+                         "<think> trace before the answer — raise further if "
+                         "you see truncated/unclosed <think> or unbalanced "
+                         "JSON errors")
     # endpoint backend
     ap.add_argument("--base-url", default="http://localhost:8000/v1")
     ap.add_argument("--api-key", default="EMPTY")

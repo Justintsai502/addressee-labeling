@@ -37,8 +37,10 @@ class LocalLLMLabeler(AddresseeLabeler):
         model: str = "Qwen/Qwen3-32B",
         backend: str = "vllm",              # "vllm" | "hf"
         temperature: float = 0.0,
-        max_new_tokens: int = 4096,  # thinking models (Qwen3) spend a chunk of
-                                      # this on a <think> trace before the answer
+        max_new_tokens: int = 8192,  # thinking models (Qwen3) spend a chunk of
+                                      # this on a <think> trace before the answer;
+                                      # 4096 was empirically not always enough for
+                                      # a 40-turn window's think trace + full JSON
         dtype: str = "auto",
         max_model_len: Optional[int] = None,
         tensor_parallel_size: int = 1,      # #GPUs for vllm

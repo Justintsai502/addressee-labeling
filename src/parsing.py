@@ -63,7 +63,12 @@ def _extract_json_blob(text: str) -> str:
                 depth -= 1
                 if depth == 0:
                     return text[start : j + 1]
-    raise ValueError("unbalanced JSON in model output")
+    raise ValueError(
+        f"unbalanced JSON in model output ({len(text) - start} chars scanned "
+        f"from the opening bracket, never closed) — almost always means "
+        f"generation got cut off by max_new_tokens before finishing; "
+        f"tail of raw output: ...{text[-150:]!r}"
+    )
 
 
 def parse_label_response(
