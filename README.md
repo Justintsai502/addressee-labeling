@@ -138,6 +138,10 @@ bash scripts/download_ami.sh ES2002a ES2002b     # 產生 data/ami/conversations
 
 # ① golden：Gemini（Google API，不需下載權重，但 audio token 要錢 → 只跑抽樣子集）
 #    Gemini labeler 會照 window 把音檔切片再上傳（slice_audio 預設開），長會議不會重送整段。
+#    注意：Pro 級模型 free tier 額度是 0（實測 429 RESOURCE_EXHAUSTED, limit:0），
+#    要在 AI Studio 該 key 的 project 點「Set up billing」開通計費才能用 Pro；
+#    切片後單次測試(30 turns/~4min)花費很低。billing 開通前可先用免費的
+#    --model gemini-2.5-flash 測通其餘流程（切片/上傳/parse），但品質不能當正式 golden。
 export GEMINI_API_KEY=...
 python3 scripts/01_build_golden.py --conversations data/ami/conversations.jsonl --out outputs/golden.jsonl
 
