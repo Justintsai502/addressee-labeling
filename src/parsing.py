@@ -25,8 +25,10 @@ def _extract_json_blob(text: str) -> str:
         text = text[think_close + len("</think>"):].strip()
     elif text.lstrip().startswith("<think>"):
         raise ValueError(
-            "model output is an unclosed <think> block with no answer after it — "
-            "likely ran out of max_new_tokens before finishing; got: " + text[:200]
+            f"model output is an unclosed <think> block with no answer after "
+            f"it ({len(text)} chars total) — likely ran out of max_new_tokens "
+            f"before finishing (or the model went into a runaway chain of "
+            f"thought — consider --disable-thinking); tail: ...{text[-250:]!r}"
         )
     # Strip code fences if present.
     fence = re.search(r"```(?:json)?\s*(.*?)```", text, re.DOTALL)

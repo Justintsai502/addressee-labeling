@@ -46,11 +46,17 @@ class LocalLLMLabeler(AddresseeLabeler):
         tensor_parallel_size: int = 1,      # #GPUs for vllm
         gpu_memory_utilization: float = 0.90,
         trust_remote_code: bool = True,
+        enable_thinking: bool = True,  # some turns can send a thinking model
+                                        # into an unbounded chain of thought
+                                        # that never reaches an answer even at
+                                        # a generous max_new_tokens — set False
+                                        # as an escape hatch when that happens
         max_turns_per_window: int = 40,
         context_turns: int = 10,
     ) -> None:
         super().__init__(max_turns_per_window, context_turns)
-        self.name = model
+        self.enable_thinking = enable_thinking
+        self.name = model if enable_thinking else f"{model}(no-think)"
         self.model = model
         self.backend = backend.lower()
         self.temperature = temperature
@@ -103,7 +109,10 @@ class LocalLLMLabeler(AddresseeLabeler):
             from vllm import SamplingParams
 
             sp = SamplingParams(temperature=self.temperature, max_tokens=self.max_new_tokens)
-            out = engine.chat(messages, sp, use_tqdm=False)
+            out = engine.chat(
+                messages, sp, use_tqdm=False,
+                chat_template_kwargs={"enable_thinking": self.enable_thinking},
+            )
             return out[0].outputs[0].text
         # hf backend
         import sys
@@ -113,7 +122,8 @@ class LocalLLMLabeler(AddresseeLabeler):
 
         tok = self._tokenizer
         prompt = tok.apply_chat_template(
-            messages, tokenize=False, add_generation_prompt=True
+            messages, tokenize=False, add_generation_prompt=True,
+            enable_thinking=self.enable_thinking,
         )
         inputs = tok(prompt, return_tensors="pt").to(engine.device)
         n_in = inputs["input_ids"].shape[1]

@@ -53,6 +53,13 @@ def main() -> None:
                          "<think> trace before the answer — raise further if "
                          "you see truncated/unclosed <think> or unbalanced "
                          "JSON errors")
+    ap.add_argument("--disable-thinking", action="store_true",
+                    help="turn off Qwen3-style <think> reasoning. Some turns "
+                         "can send a thinking model into a runaway chain of "
+                         "thought that never reaches an answer even at a "
+                         "generous --max-new-tokens; this is the escape "
+                         "hatch when that happens, at the cost of measuring "
+                         "a non-thinking version of the model")
     # endpoint backend
     ap.add_argument("--base-url", default="http://localhost:8000/v1")
     ap.add_argument("--api-key", default="EMPTY")
@@ -66,6 +73,7 @@ def main() -> None:
             backend=args.engine,
             temperature=args.temperature,
             max_new_tokens=args.max_new_tokens,
+            enable_thinking=not args.disable_thinking,
             dtype=args.dtype,
             max_model_len=args.max_model_len,
             tensor_parallel_size=args.tensor_parallel_size,
