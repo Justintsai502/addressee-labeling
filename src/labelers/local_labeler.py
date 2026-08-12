@@ -106,6 +106,9 @@ class LocalLLMLabeler(AddresseeLabeler):
             out = engine.chat(messages, sp, use_tqdm=False)
             return out[0].outputs[0].text
         # hf backend
+        import sys
+        import time
+
         import torch  # lazy
 
         tok = self._tokenizer
@@ -113,6 +116,14 @@ class LocalLLMLabeler(AddresseeLabeler):
             messages, tokenize=False, add_generation_prompt=True
         )
         inputs = tok(prompt, return_tensors="pt").to(engine.device)
+        n_in = inputs["input_ids"].shape[1]
+        # transformers' plain generate() prints nothing while it runs (unlike
+        # vLLM), so a thinking model chewing through max_new_tokens looks
+        # indistinguishable from hung — print before/after so it isn't.
+        print(f"  [hf] generating: {n_in} input tokens, up to {self.max_new_tokens} "
+              f"new (no progress bar during generation, this can take minutes)...",
+              file=sys.stderr, flush=True)
+        t0 = time.time()
         with torch.no_grad():
             gen = engine.generate(
                 **inputs,
@@ -121,7 +132,11 @@ class LocalLLMLabeler(AddresseeLabeler):
                 temperature=(self.temperature or None),
                 pad_token_id=tok.eos_token_id,
             )
-        return tok.decode(gen[0][inputs["input_ids"].shape[1]:], skip_special_tokens=True)
+        n_out = gen.shape[1] - n_in
+        dt = time.time() - t0
+        print(f"  [hf] done: {n_out} tokens in {dt:.1f}s ({n_out / max(dt, 0.01):.1f} tok/s)",
+              file=sys.stderr, flush=True)
+        return tok.decode(gen[0][n_in:], skip_special_tokens=True)
 
     def _label_window(
         self, conv: Conversation, context: List, target: List, window_text: str
