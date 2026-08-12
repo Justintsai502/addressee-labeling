@@ -45,6 +45,7 @@ class OpenAIGoldenLabeler(AddresseeLabeler):
         model: str = "gpt-4o-audio-preview",
         api_key: Optional[str] = None,
         temperature: float = 0.0,
+        max_output_tokens: Optional[int] = 8192,
         max_turns_per_window: int = 40,
         context_turns: int = 10,
         send_audio: bool = True,
@@ -55,6 +56,7 @@ class OpenAIGoldenLabeler(AddresseeLabeler):
         self.name = model
         self.model = model
         self.temperature = temperature
+        self.max_output_tokens = max_output_tokens
         self.send_audio = send_audio
         self.audio_pad = audio_pad
         self.audio_format = audio_format
@@ -110,6 +112,10 @@ class OpenAIGoldenLabeler(AddresseeLabeler):
             ],
             response_format={"type": "json_object"},
         )
+        if self.max_output_tokens is not None:
+            # reasoning models spend part of this budget on invisible thinking
+            # before the visible completion, same as the local Qwen path.
+            kwargs["max_completion_tokens"] = self.max_output_tokens
         if self._audio_path:
             kwargs["modalities"] = ["text"]
 

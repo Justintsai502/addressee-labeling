@@ -45,6 +45,10 @@ def main() -> None:
                     help=f"default per backend: {DEFAULT_MODELS}")
     ap.add_argument("--max-turns-per-window", type=int, default=40)
     ap.add_argument("--context-turns", type=int, default=10)
+    ap.add_argument("--max-output-tokens", type=int, default=8192,
+                    help="reasoning models spend part of this on invisible "
+                         "thinking before the visible answer — raise if you "
+                         "see truncated-output errors on long windows")
     ap.add_argument("--no-audio", action="store_true",
                     help="ablation: run on transcript only (isolates audio's value)")
     args = ap.parse_args()
@@ -56,6 +60,7 @@ def main() -> None:
         model=model,
         max_turns_per_window=args.max_turns_per_window,
         context_turns=args.context_turns,
+        max_output_tokens=args.max_output_tokens,
         send_audio=not args.no_audio,
     )
     run_labeler(labeler, convs, args.out)

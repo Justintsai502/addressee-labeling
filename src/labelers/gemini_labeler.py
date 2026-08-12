@@ -44,6 +44,7 @@ class GeminiGoldenLabeler(AddresseeLabeler):
         model: str = "gemini-3.1-pro-preview",
         api_key: Optional[str] = None,
         temperature: float = 0.0,
+        max_output_tokens: Optional[int] = 8192,
         max_turns_per_window: int = 40,
         context_turns: int = 10,
         send_audio: bool = True,
@@ -54,6 +55,7 @@ class GeminiGoldenLabeler(AddresseeLabeler):
         self.name = model
         self.model = model
         self.temperature = temperature
+        self.max_output_tokens = max_output_tokens
         self.send_audio = send_audio
         self.slice_audio = slice_audio
         self.audio_pad = audio_pad
@@ -142,6 +144,7 @@ class GeminiGoldenLabeler(AddresseeLabeler):
                 config=types.GenerateContentConfig(
                     system_instruction=GOLDEN_SYSTEM,
                     temperature=self.temperature,
+                    max_output_tokens=self.max_output_tokens,
                     response_mime_type="application/json",
                 ),
             )
