@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import abc
-from typing import Dict, List
+from typing import Callable, Dict, List, Optional
 
 from ..schema import AddresseeLabel, Conversation
 from ..transcript_format import iter_windows, render_window
@@ -40,15 +40,32 @@ class AddresseeLabeler(abc.ABC):
         raise NotImplementedError
 
     # -- public API -----------------------------------------------------------
-    def label_conversation(self, conv: Conversation) -> Dict[int, AddresseeLabel]:
+    def label_conversation(
+        self,
+        conv: Conversation,
+        existing: Optional[Dict[int, AddresseeLabel]] = None,
+        on_progress: Optional[Callable[[Dict[int, AddresseeLabel]], None]] = None,
+    ) -> Dict[int, AddresseeLabel]:
+        """Label every turn, skipping ones already present in `existing`.
+
+        `on_progress(labels)` fires after every window with the accumulated
+        labels so far — the caller can checkpoint to disk, so a killed job
+        (SLURM time limit, Ctrl+C) loses at most one in-flight window, not
+        everything. Pass the same `existing` back in on retry to resume
+        instead of re-labeling (and re-paying for) turns already done.
+        """
         self._prepare(conv)
         try:
-            labels: Dict[int, AddresseeLabel] = {}
+            labels: Dict[int, AddresseeLabel] = dict(existing or {})
             for context, target in iter_windows(
                 conv, self.max_turns_per_window, self.context_turns
             ):
+                if all(t.turn_id in labels for t in target):
+                    continue  # this whole window was already done on a prior run
                 window_text = render_window(conv, context, target)
                 labels.update(self._label_window(conv, context, target, window_text))
+                if on_progress is not None:
+                    on_progress(labels)
             return labels
         finally:
             self._cleanup(conv)
