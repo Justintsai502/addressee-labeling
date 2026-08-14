@@ -68,11 +68,22 @@ class LocalLLMLabeler(AddresseeLabeler):
         self.trust_remote_code = trust_remote_code
         self._engine = None       # loaded once, lazily
         self._tokenizer = None    # hf backend only
+        # timing/throughput stats, for speed benchmarking across models
+        self.stats = {
+            "load_seconds": 0.0,
+            "generate_seconds": 0.0,
+            "input_tokens": 0,
+            "output_tokens": 0,
+            "n_calls": 0,
+        }
 
     # -- load the model once (not per conversation) ---------------------------
     def _get_engine(self):
         if self._engine is not None:
             return self._engine
+        import time as _time
+
+        _t_load = _time.time()
         if self.backend == "vllm":
             from vllm import LLM  # lazy: keeps vllm optional
 
@@ -100,6 +111,7 @@ class LocalLLMLabeler(AddresseeLabeler):
             )
         else:
             raise ValueError(f"unknown backend {self.backend!r} (use 'vllm' or 'hf')")
+        self.stats["load_seconds"] = _time.time() - _t_load
         return self._engine
 
     def _chat(self, messages: List[dict]) -> str:
@@ -108,11 +120,18 @@ class LocalLLMLabeler(AddresseeLabeler):
         if self.backend == "vllm":
             from vllm import SamplingParams
 
+            import time as _t
+
             sp = SamplingParams(temperature=self.temperature, max_tokens=self.max_new_tokens)
+            _t0 = _t.time()
             out = engine.chat(
                 messages, sp, use_tqdm=False,
                 chat_template_kwargs={"enable_thinking": self.enable_thinking},
             )
+            self.stats["generate_seconds"] += _t.time() - _t0
+            self.stats["n_calls"] += 1
+            self.stats["input_tokens"] += len(out[0].prompt_token_ids or [])
+            self.stats["output_tokens"] += len(out[0].outputs[0].token_ids or [])
             return out[0].outputs[0].text
         # hf backend
         import sys
@@ -144,6 +163,10 @@ class LocalLLMLabeler(AddresseeLabeler):
             )
         n_out = gen.shape[1] - n_in
         dt = time.time() - t0
+        self.stats["generate_seconds"] += dt
+        self.stats["n_calls"] += 1
+        self.stats["input_tokens"] += n_in
+        self.stats["output_tokens"] += n_out
         print(f"  [hf] done: {n_out} tokens in {dt:.1f}s ({n_out / max(dt, 0.01):.1f} tok/s)",
               file=sys.stderr, flush=True)
         return tok.decode(gen[0][n_in:], skip_special_tokens=True)
