@@ -34,16 +34,21 @@ from src.labelers import get_labeler
 
 
 def free_gpu() -> None:
-    """Release the previous model's GPU memory before loading the next."""
+    """Release the previous model's GPU memory before loading the next.
+
+    Best-effort only: this is cleanup, so it must never be the thing that kills
+    a benchmark run. (It is also called before the first model is loaded, when
+    there is nothing to free and the driver may not be ready yet.)
+    """
     gc.collect()
     try:
         import torch
 
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
-            torch.cuda.synchronize()
-    except ImportError:
-        pass
+    except Exception as e:
+        print(f"  (gpu cleanup skipped: {type(e).__name__}: {str(e)[:80]})",
+              file=sys.stderr)
 
 
 def main() -> None:
