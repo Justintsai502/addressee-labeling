@@ -35,6 +35,22 @@ def main() -> None:
     gold = load_labels(args.gold)
     pred = load_labels(args.pred)
 
+    # Windows the labeler failed on are stored as UNKNOWN with a "(failed)"
+    # labeler tag. They are NOT model predictions — silently scoring them drags
+    # the metrics down in a way that looks like real model behaviour, so say so
+    # loudly rather than letting them pass as data.
+    for name, labels_by_conv in (("gold", gold), ("pred", pred)):
+        n_failed = sum(
+            1 for labels in labels_by_conv.values() for lab in labels.values()
+            if (lab.labeler or "").endswith("(failed)")
+        )
+        n_total = sum(len(labels) for labels in labels_by_conv.values())
+        if n_failed:
+            print(f"WARNING: {n_failed}/{n_total} {name} labels come from FAILED "
+                  f"windows (recorded as UNKNOWN, not real predictions). "
+                  f"Scores below are distorted by these — re-run those windows "
+                  f"before trusting the numbers.\n")
+
     result = evaluate(gold, pred, convs)
     acc = acceptance_check(result, args.accept_kappa, args.accept_exact)
     print(format_report(result, acc))

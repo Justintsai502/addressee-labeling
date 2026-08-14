@@ -53,6 +53,10 @@ def main() -> None:
                          "<think> trace before the answer — raise further if "
                          "you see truncated/unclosed <think> or unbalanced "
                          "JSON errors")
+    ap.add_argument("--fail-fast", action="store_true",
+                    help="abort the whole run if any window fails to parse "
+                         "(default: record UNKNOWN for that window, warn, and "
+                         "keep going so one bad turn can't kill a long batch)")
     ap.add_argument("--disable-thinking", action="store_true",
                     help="turn off Qwen3-style <think> reasoning. Some turns "
                          "can send a thinking model into a runaway chain of "
@@ -91,6 +95,7 @@ def main() -> None:
             max_turns_per_window=args.max_turns_per_window,
             context_turns=args.context_turns,
         )
+    labeler.skip_failed_windows = not args.fail_fast
     run_labeler(labeler, convs, args.out)
 
 
