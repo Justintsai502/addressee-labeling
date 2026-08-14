@@ -81,6 +81,7 @@ class LocalLLMLabeler(AddresseeLabeler):
     def _get_engine(self):
         if self._engine is not None:
             return self._engine
+        import sys as _sys
         import time as _time
 
         _t_load = _time.time()
@@ -98,17 +99,36 @@ class LocalLLMLabeler(AddresseeLabeler):
                 kw["max_model_len"] = self.max_model_len
             self._engine = LLM(**kw)
         elif self.backend == "hf":
+            import torch
             from transformers import AutoModelForCausalLM, AutoTokenizer  # lazy
 
             self._tokenizer = AutoTokenizer.from_pretrained(
                 self.model, trust_remote_code=self.trust_remote_code
             )
+            # device_map="auto" has been observed placing the whole model on CPU
+            # even with a free GPU present (~7 tok/s instead of ~30+, with no
+            # warning). Pin to the GPU explicitly when there is one; only fall
+            # back to "auto" for multi-GPU sharding or genuinely CPU-only hosts.
+            if torch.cuda.is_available():
+                device_map = "auto" if self.tensor_parallel_size > 1 else {"": 0}
+            else:
+                device_map = "auto"
             self._engine = AutoModelForCausalLM.from_pretrained(
                 self.model,
                 torch_dtype=("auto" if self.dtype == "auto" else self.dtype),
-                device_map="auto",
+                device_map=device_map,
                 trust_remote_code=self.trust_remote_code,
             )
+            dev = next(self._engine.parameters()).device
+            if dev.type == "cpu" and torch.cuda.is_available():
+                print(f"  WARNING: {self.model} loaded on CPU despite an available "
+                      f"GPU — generation will be ~5x slower. Check accelerate/"
+                      f"device_map behaviour before trusting any timing.",
+                      file=_sys.stderr, flush=True)
+            else:
+                print(f"  [hf] model on {dev}, dtype "
+                      f"{next(self._engine.parameters()).dtype}",
+                      file=_sys.stderr, flush=True)
         else:
             raise ValueError(f"unknown backend {self.backend!r} (use 'vllm' or 'hf')")
         self.stats["load_seconds"] = _time.time() - _t_load
