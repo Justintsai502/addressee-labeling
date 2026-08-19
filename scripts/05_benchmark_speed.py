@@ -21,6 +21,14 @@ be scored for accuracy afterwards — speed alone isn't the whole picture.
 """
 from __future__ import annotations
 
+import os
+
+# vLLM spawns worker processes for its engine; with the default "fork" start
+# method any CUDA state in this parent process makes the children fail with
+# "Cannot re-initialize CUDA in forked subprocess". Set before importing torch
+# or vllm so it actually takes effect.
+os.environ.setdefault("VLLM_WORKER_MULTIPROC_METHOD", "spawn")
+
 import argparse
 import gc
 import json
@@ -36,15 +44,19 @@ from src.labelers import get_labeler
 def free_gpu() -> None:
     """Release the previous model's GPU memory before loading the next.
 
-    Best-effort only: this is cleanup, so it must never be the thing that kills
-    a benchmark run. (It is also called before the first model is loaded, when
-    there is nothing to free and the driver may not be ready yet.)
+    Must NOT initialize CUDA as a side effect: vLLM forks subprocesses for its
+    engine, and CUDA already initialized in the parent makes those children die
+    with "Cannot re-initialize CUDA in forked subprocess". So only touch the
+    allocator when CUDA is *already* initialized (i.e. a previous HF model
+    loaded it) — never as the first CUDA call of the process.
+
+    Best-effort only: this is cleanup, so it must never kill a benchmark run.
     """
     gc.collect()
     try:
         import torch
 
-        if torch.cuda.is_available():
+        if torch.cuda.is_available() and torch.cuda.is_initialized():
             torch.cuda.empty_cache()
     except Exception as e:
         print(f"  (gpu cleanup skipped: {type(e).__name__}: {str(e)[:80]})",
