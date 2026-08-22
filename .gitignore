@@ -11,3 +11,6 @@ data/**/audio/
 data/ami/
 .env
 .venv/
+
+# labels pulled down from the server with rsync (not source)
+outputs_server/
