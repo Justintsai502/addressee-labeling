@@ -1,0 +1,35 @@
+{
+ "n_dialogues": 234,
+ "n_utterances": 4218,
+ "issues": {
+  "bare_seat_letter": {
+   "rows": 1,
+   "dialogues": 1
+  },
+  "letter_placeholder": {
+   "rows": 26,
+   "dialogues": 14
+  },
+  "name_placeholder": {
+   "rows": 144,
+   "dialogues": 47
+  },
+  "named_label_on_group_line": {
+   "rows": 65,
+   "dialogues": 65
+  },
+  "other_bracket": {
+   "rows": 5,
+   "dialogues": 5
+  },
+  "self_vocative": {
+   "rows": 51,
+   "dialogues": 38
+  },
+  "stage_direction": {
+   "rows": 2,
+   "dialogues": 1
+  }
+ },
+ "dialogues_with_any_issue_excluding_name_placeholder": 95
+}
