@@ -11,3 +11,7 @@ data/**/audio/
 data/ami/
 .env
 .venv/
+
+# ADS v3 pipeline run outputs and slurm logs (large; not committed)
+logs/
+outputs/ads_v3_v5/

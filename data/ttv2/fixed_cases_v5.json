@@ -1,0 +1,30 @@
+{
+  "_doc": "Hand-written boundary cases for prompt v5 (2026-10-11). Neutral names, not from ttv2. The target is the LAST turn. expect_clauses = splitter output (exact text). expect[k].any_of = accepted normalized addressee values for clause k (\"ALL\" or names joined by |, sorted); forbid = names that must not be in the majority set; report_only = not counted in the pass rate.",
+  "speakers": ["Mara", "Theo", "Priya", "Jonas"],
+  "cases": [
+    {"case_id": "voc_initial", "turns": [["Mara", "Okay, we still need someone for the room booking."], ["Mara", "Theo, can you book the room for Friday?"]],
+     "expect_clauses": ["Theo, can you book the room for Friday?"], "expect": [{"any_of": ["Theo"]}]},
+    {"case_id": "voc_final", "turns": [["Jonas", "I finished the draft of the slides."], ["Mara", "Can you send me the slides tonight, Priya?"]],
+     "expect_clauses": ["Can you send me the slides tonight, Priya?"], "expect": [{"any_of": ["Priya"]}]},
+    {"case_id": "name_list", "turns": [["Priya", "We still need drinks and ice for Saturday."], ["Mara", "Theo and Jonas, can you two handle the drinks?"]],
+     "expect_clauses": ["Theo and Jonas, can you two handle the drinks?"], "expect": [{"any_of": ["Jonas|Theo"]}]},
+    {"case_id": "third_person", "turns": [["Priya", "Who is bringing the speakers to the party?"], ["Mara", "Jonas said he would bring them after work."]],
+     "expect_clauses": ["Jonas said he would bring them after work."], "expect": [{"any_of": ["Priya", "ALL"], "forbid": ["Jonas"]}]},
+    {"case_id": "switch_in_turn", "turns": [["Theo", "I think we should leave at six to beat the traffic."], ["Mara", "I agree with you, Theo. Priya, what do you think?"]],
+     "expect_clauses": ["I agree with you, Theo.", "Priya, what do you think?"], "expect": [{"any_of": ["Theo"]}, {"any_of": ["Priya"]}]},
+    {"case_id": "reply_unnamed", "turns": [["Theo", "Mara, did you finish the budget sheet?"], ["Mara", "Yes, I sent it this morning."]],
+     "expect_clauses": ["Yes, I sent it this morning."], "expect": [{"any_of": ["Theo"]}]},
+    {"case_id": "you_guys", "turns": [["Jonas", "Sorry I'm late, the bus was slow."], ["Mara", "Do you guys want to start with the budget?"]],
+     "expect_clauses": ["Do you guys want to start with the budget?"], "expect": [{"any_of": ["ALL"]}]},
+    {"case_id": "group_then_person", "turns": [["Priya", "Everyone is here now."], ["Mara", "Okay everyone, let's start. Jonas, you go first."]],
+     "expect_clauses": ["Okay everyone, let's start.", "Jonas, you go first."], "expect": [{"any_of": ["ALL"]}, {"any_of": ["Jonas"]}]},
+    {"case_id": "room_question_answer", "turns": [["Theo", "Does anyone know when the store closes tonight?"], ["Priya", "I think it closes at nine."]],
+     "expect_clauses": ["I think it closes at nine."], "expect": [{"any_of": ["Theo", "ALL"]}]},
+    {"case_id": "agent_plus_subset", "turns": [["Jonas", "The car is making a weird noise again."], ["Mara", "Theo and Priya, could you check the car before we go?"]],
+     "expect_clauses": ["Theo and Priya, could you check the car before we go?"], "expect": [{"any_of": ["Priya|Theo"]}]},
+    {"case_id": "short_reaction", "turns": [["Jonas", "Mara, can you grab the extension cord from the garage?"], ["Mara", "Sure."]],
+     "expect_clauses": ["Sure."], "expect": [{"any_of": ["Jonas"]}]},
+    {"case_id": "self_vocative", "turns": [["Theo", "We need someone to call the landlord."], ["Mara", "Mara, can you call the landlord today?"]],
+     "expect_clauses": ["Mara, can you call the landlord today?"], "expect": [{"report_only": true}]}
+  ]
+}

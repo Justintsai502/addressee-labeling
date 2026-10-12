@@ -11,6 +11,8 @@
 **先用強模型（Gemini 3 Pro，audio + transcript）建一組 golden set，再檢查只吃 transcript
 的 Qwen 能不能貼近 golden set。** 若夠接近，就用便宜、可自架的 Qwen 去標整個 2000 小時語料。
 
+> **ADS v3 clause-level 標註 pipeline（2026-10）**：見 [`docs/ADS_V3_PIPELINE.md`](docs/ADS_V3_PIPELINE.md)，一鍵執行 `scripts/run_ads_v3.sh`。
+
 ---
 
 ## 1. 這個方法好不好？（評估）
