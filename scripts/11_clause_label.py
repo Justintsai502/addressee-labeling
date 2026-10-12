@@ -209,6 +209,9 @@ def main():
     n_items = sum(len(c) for c in chunks)
     print(f"{len(convs)} conversations to do ({len(done)} already done), {n_items} clauses, mode={args.mode}, "
           f"k={args.k}, {len(chunks)} chunk(s)", file=sys.stderr, flush=True)
+    if n_items == 0:
+        print("nothing to do", file=sys.stderr)
+        return
     t0 = time.time()
     engine = MockEngine() if args.backend == "mock" else VllmEngine(
         args.model, args.max_model_len, args.max_new_tokens, not args.no_think, system,

@@ -11,7 +11,8 @@ import numpy as np
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from src.clause_v5 import ALL, aggregate, class_for, parse_vote, render_causal, split_clauses  # noqa: E402
+from src.clause_v5 import (ALL, aggregate, class_for, parse_vote, render_causal, self_vocative,  # noqa: E402
+                           split_clauses)
 from src.frames_v5 import CLASS_IDX, FRAME, assign_span, build_view, clause_spans  # noqa: E402
 
 _fail = 0
@@ -132,6 +133,14 @@ check("aligned clauses are contiguous inside the utterance", sp[0]["t1"] == sp[1
 check("utterance edges from first/last word", sp[0]["t0"] == 0.1 and sp[1]["t1"] == 2.0)
 sp = clause_spans(utts, words[:5] + [(1.5, 1.7, "zzz")])
 check("unaligned clause -> whole utterance proportional fallback, flagged", all(c["low_quality"] for c in sp), sp)
+
+# --- script bug: speaker calls their own name (13_build_frames_v5 masks those turns)
+check("self-vocative detected", self_vocative("Emil, did you manage to pay?", "Emil")
+      and self_vocative("And Monique, given there's only one car,", "Monique")
+      and self_vocative("That would help a lot. [Maya], any chance you can grab those?", "Maya"))
+check("vocative to someone else / own name not as vocative -> not flagged",
+      not self_vocative("Emil, did you manage to pay?", "Carrie")
+      and not self_vocative("Thanks, Emil. I think Carrie is right.", "Carrie"))
 
 print(f"\n{_fail} failure(s)")
 sys.exit(1 if _fail else 0)

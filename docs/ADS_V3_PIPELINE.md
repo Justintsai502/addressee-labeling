@@ -128,7 +128,12 @@ hard = np.where(mask == 1, soft.argmax(1), -1)  # -1 = 遮罩
 5. 多人同時有聲音 → 跟著**最晚開始說話的人**（新進來的人）：是 a → `self`，是別人 → 套用 3/4；
    同一個 frame 同時開口 → 遮罩
 
-另外：有效票少於 3 張的子句遮罩；script 裡含 `[to X]` 舞台指示的 turn 遮罩（TTS 會把它唸出來）。
+另外遮罩：有效票少於 3 張的子句；script 裡含 `[to X]` 舞台指示的 turn（TTS 會把它念出來）；
+說話者叫自己名字的 turn（生成錯誤，見 [`TTV2_DATA_ISSUES.md`](TTV2_DATA_ISSUES.md)）。以上都只遮罩其他座位的 view，
+說話者自己的座位仍是 `self`。
+
+前處理（`00c`）會把座位字母呼喚 `[C],` 從文字中拿掉、其他位置的 `[C]` 換成 "someone"，因為音檔裡聽不到名字
+（`--keep-seat-letters` 關掉；EXP-062 dev20 是舊行為）。原始文字保留在每個 turn 的 `script_text`。
 
 ## 9. 成本（dev20 實測，1 張 GPU）
 
@@ -137,6 +142,9 @@ hard = np.where(mask == 1, soft.argmax(1), -1)  # -1 = 遮罩
 
 ## 10. 已知限制
 
+- 2026-10-12 在全新 clone 上模擬實跑（3 段對話，1 張 GPU，17 分鐘，含看全文對照版與 ASR 檢查）：
+  門檻全部通過、續跑會跳過已完成的部分。測試用的 ASR 是給本機路徑；用 HF id 自動下載沒有在離線節點上試過。
+
 - VAD 用能量門檻（RMS > 1e-3），前提是個人音軌在沒說話時是數位靜音（TTS 資料成立）；真實錄音不適用。
 - script 的時間和實際音檔最多差約 1.5 秒，所以時間一律以音檔為準（VAD + ASR），不用 script 的 `start/end`。
 - 子句切分是規則式（標點 + 呼喚語 + 至少 3 個字）；短的前置從屬子句（"If we focus,"）會自成一個子句。
@@ -144,10 +152,15 @@ hard = np.where(mask == 1, soft.argmax(1), -1)  # -1 = 遮罩
 - 標籤是子句結束後才判定的語意標籤；子句開頭的 frame 不一定已經聽得出對象。評估時間點請用子句結尾。
 - dev20 不是 held-out 資料，EXP-062 的數字只代表流程與規則一致性，不代表標註正確率。
 
-## 11. 測試
+## 11. 資料問題
+
+ttv2 的生成錯誤（自己叫自己、座位字母、開場句標錯等）整理在 [`TTV2_DATA_ISSUES.md`](TTV2_DATA_ISSUES.md)，
+清單 `data/ttv2/script_issues.csv`，用 `scripts/15_audit_ttv2_script.py` 重新產生。
+
+## 12. 測試
 
 ```bash
-python3 tests/test_clause_v5.py   # 55 項：子句切分、prompt 因果性、投票解析、類別換算、遮罩、frame 規則、對齊 fallback
+python3 tests/test_clause_v5.py   # 57 項：子句切分、prompt 因果性、投票解析、類別換算、遮罩、frame 規則、對齊 fallback
 python3 tests/test_pipeline.py    # 原有測試
 ```
 

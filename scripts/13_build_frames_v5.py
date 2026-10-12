@@ -26,7 +26,7 @@ import soundfile as sf
 
 import _bootstrap  # noqa: F401
 
-from src.clause_v5 import aggregate
+from src.clause_v5 import aggregate, self_vocative
 from src.frames_v5 import (FRAME, build_view, clause_spans, frames_from_sub, norm_tokens, vad_subframes)
 from src.io_utils import load_conversations
 
@@ -71,7 +71,7 @@ def main():
         if not r["conversation_id"].startswith("fixed:"):
             votes[r["conversation_id"]].append(r)
     summ = {"frames": Counter(), "frames_by_class": defaultdict(Counter), "clauses": 0,
-            "clauses_low_quality": 0, "clauses_masked": 0, "clauses_stage_direction": 0, "dialogues": 0, "cue": Counter(),
+            "clauses_low_quality": 0, "clauses_masked": 0, "clauses_stage_direction": 0, "clauses_self_vocative": 0, "dialogues": 0, "cue": Counter(),
             "script_overlap_pairs": 0}
     fc = open(out / "clauses.jsonl", "w", encoding="utf-8")
     for conv in load_conversations(args.convs):
@@ -127,6 +127,9 @@ def main():
                 # TTS ("To see, ..."); mask those clauses (user, 2026-10-12). The agent's own turn stays `self`.
                 if STAGE.search(r["turn_text"]) and g["hard"] != "self":
                     g.update(mask=0, soft=None, hard=None, stage_direction=True)
+                # the speaker calls their own name: the addressee is unknowable from the audio; mask (2026-10-12)
+                if self_vocative(r["turn_text"], r["speaker"]) and g["hard"] != "self":
+                    g.update(mask=0, soft=None, hard=None, self_vocative=True)
                 lab[key] = g
             labels_by_agent[agent] = lab
             # spans are indexed by speaking seat; build_view looks up the active seat's spans
@@ -147,6 +150,7 @@ def main():
             summ["clauses_low_quality"] += int(ci["low_quality"])
             summ["clauses_masked"] += int(r["valid_vote_count"] < 3)
             summ["clauses_stage_direction"] += int(bool(STAGE.search(r["turn_text"])))
+            summ["clauses_self_vocative"] += int(self_vocative(r["turn_text"], r["speaker"]))
             fc.write(json.dumps({
                 "conversation_id": cid, "turn_id": r["turn_id"], "clause_idx": r["clause_idx"],
                 "seat": script[r["turn_id"]]["speaker"], "speaker": r["speaker"],

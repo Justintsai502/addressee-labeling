@@ -52,6 +52,19 @@ def flags(u, i, names):
     return out
 
 
+SEAT_LETTER_VOC = re.compile(r"\[([A-D])\]\s*,\s*")
+SEAT_LETTER = re.compile(r"\[([A-D])\]")
+
+
+def strip_seat_letters(text: str) -> str:
+    """Generator bug: "[C], do you ..." uses a seat letter instead of a name. TTS drops it or reads the letter,
+    so the name is never audible; drop the vocative and turn other mentions into "someone" (2026-10-12)."""
+    t = SEAT_LETTER_VOC.sub("", text)
+    t = SEAT_LETTER.sub("someone", t)
+    t = re.sub(r"\s{2,}", " ", t).strip()
+    return t[:1].upper() + t[1:] if t and not text[:1].islower() else t
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--root", required=True)
@@ -62,6 +75,8 @@ def main() -> None:
     ap.add_argument("--ids", nargs="*", default=None, help="convert exactly these dialogue ids")
     ap.add_argument("--ids-file", default=None, help="file with dialogue ids (whitespace separated)")
     ap.add_argument("--all", action="store_true", help="convert every dialogue under --root")
+    ap.add_argument("--keep-seat-letters", action="store_true",
+                    help="keep '[C]' seat-letter placeholders in the text (EXP-062 dev20 behaviour)")
     ap.add_argument("--audio-name", default="audio_qwen3-tts-1.7b-clone.wav", help="mix wav file name (meta only)")
     args = ap.parse_args()
     dirs = sorted(Path(p).parent for p in glob.glob(f"{args.root}/tr*/script.jsonl"))
@@ -97,8 +112,9 @@ def main() -> None:
             turns, labels = [], []
             for i, x in enumerate(u):
                 spk = names[x["speaker"]]
-                turns.append({"turn_id": i, "speaker": spk, "start": x["start"], "end": x["end"], "text": x["text"],
-                              "overlap": False, "slot": x["speaker"], "utt_id": x["utt_id"], **flags(u, i, names)})
+                turns.append({"turn_id": i, "speaker": spk, "start": x["start"], "end": x["end"],
+                              "text": x["text"] if args.keep_seat_letters else strip_seat_letters(x["text"]),
+                              "script_text": x["text"], "overlap": False, "slot": x["speaker"], "utt_id": x["utt_id"], **flags(u, i, names)})
                 a = x["addressing"]
                 labels.append({"turn_id": i, "addressees": ["GROUP"] if a == ["EVERYONE"] else [names[a[0]]],
                                "confidence": None, "rationale": "generator addressing (repair_dialogue applied)",

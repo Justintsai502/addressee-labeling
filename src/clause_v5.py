@@ -259,3 +259,10 @@ def majority_norm(norms: Sequence[Optional[str]]) -> Tuple[Optional[str], int]:
         return None, 0
     (n, c), = Counter(valid).most_common(1)
     return n, c
+
+
+def self_vocative(text: str, speaker: str) -> bool:
+    """Script bug: the speaker opens by calling their own name ("Emil: Emil, did you ...", see docs/TTV2_DATA_ISSUES.md)."""
+    n = re.escape(speaker)
+    return bool(re.match(rf"^\W*(?:\w+\W+){{0,4}}?\[?{n}\]?\s*[,!?]", text, re.I)
+                or re.search(rf"[,.]\s*\[?{n}\]?\s*[,?]", text, re.I))
