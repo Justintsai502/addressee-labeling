@@ -1,0 +1,367 @@
+<title>Addressee 標註審查</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one review card at a time (transcript excerpt + two anonymous candidate labels + verdict buttons), progress and tallies in a side column that stacks on phones */
+:root {
+  --bg: #f4f5f7;
+  --surface: #ffffff;
+  --sunken: #eceef2;
+  --fg: #1b2029;
+  --muted: #5d6676;
+  --line: #d9dde4;
+  --accent: #245a8f;
+  --accent-soft: #e2ecf6;
+  --target: #fff6d8;
+  --good: #1e7048;
+  --bad: #a8321f;
+  --font-body: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12151b; --surface: #1a1e26; --sunken: #222733; --fg: #e3e7ee; --muted: #9aa3b3; --line: #2e3542;
+    --accent: #8db7e6; --accent-soft: #1f2e40; --target: #3a3320; --good: #6fcf9a; --bad: #f0907f; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12151b; --surface: #1a1e26; --sunken: #222733; --fg: #e3e7ee; --muted: #9aa3b3; --line: #2e3542;
+  --accent: #8db7e6; --accent-soft: #1f2e40; --target: #3a3320; --good: #6fcf9a; --bad: #f0907f; color-scheme: dark;
+}
+body { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 15px; line-height: 1.6; }
+.wrap { max-width: 1080px; margin: 0 auto; padding-inline: 16px; padding-block: 24px 48px; display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 20px; }
+@media (max-width: 820px) { .wrap { grid-template-columns: 1fr; } }
+header { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 16px; }
+h1 { font-size: 22px; margin: 0; }
+.sub { color: var(--muted); font-size: 13px; }
+.banner { grid-column: 1 / -1; border: 1px solid var(--line); background: var(--surface); padding: 8px 12px; border-radius: 6px; font-size: 13.5px; }
+.banner[data-kind="warn"] { border-color: var(--bad); color: var(--bad); }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 18px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.meta { display: flex; flex-wrap: wrap; gap: 6px 12px; font-family: var(--font-mono); font-size: 12.5px; color: var(--muted); }
+.convo { display: flex; flex-direction: column; gap: 4px; background: var(--sunken); border-radius: 6px; padding: 10px 12px; }
+.line { display: grid; grid-template-columns: 2.2em minmax(0, 1fr); gap: 8px; color: var(--muted); }
+.line.target { color: var(--fg); background: var(--target); border-radius: 4px; padding: 6px 4px; font-weight: 500; }
+.spk { font-family: var(--font-mono); font-weight: 500; }
+.q { font-weight: 700; }
+.cands { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+.cand { border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; }
+.cand .tag { font-size: 12px; color: var(--muted); letter-spacing: .04em; }
+.cand .val { font-size: 17px; font-weight: 700; }
+.cand .who { font-size: 12.5px; color: var(--accent); min-height: 1.2em; }
+.verdicts { display: flex; flex-wrap: wrap; gap: 8px; }
+button { font: inherit; border: 1px solid var(--line); background: var(--surface); color: var(--fg); border-radius: 6px; padding: 7px 12px; cursor: pointer; }
+button:hover { border-color: var(--accent); }
+button:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--surface); }
+button:disabled { opacity: .45; cursor: not-allowed; }
+.own { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; font-size: 14px; }
+.own label { display: inline-flex; gap: 4px; align-items: center; }
+textarea { font: inherit; width: 100%; min-height: 3em; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--fg); padding: 6px 8px; box-sizing: border-box; }
+.nav { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
+.reveal { font-size: 13.5px; color: var(--muted); border-top: 1px dashed var(--line); padding-top: 10px; }
+.reveal b { color: var(--fg); }
+aside { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px; display: flex; flex-direction: column; gap: 8px; }
+.panel h2 { font-size: 14px; margin: 0; color: var(--muted); letter-spacing: .04em; }
+.bar { height: 8px; background: var(--sunken); border-radius: 999px; overflow: hidden; }
+.bar > span { display: block; height: 100%; background: var(--accent); }
+.kv { display: flex; justify-content: space-between; font-size: 13.5px; }
+.kv span:last-child { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+select { font: inherit; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--fg); padding: 5px 8px; }
+.help { font-size: 13px; color: var(--muted); }
+.help li { margin-bottom: 4px; }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Addressee 標註審查</h1>
+    <span class="sub" id="subtitle">AMI 會議・人工標註 vs LLM 投票</span>
+  </header>
+  <div class="banner" id="banner" hidden></div>
+
+  <main class="card" id="card">
+    <div class="meta" id="meta"></div>
+    <div class="convo" id="convo" aria-label="對話片段"></div>
+    <p class="q" id="question">黃色這句話是在對誰說？下面兩個候選標註哪一個對？</p>
+    <div class="cands" id="cands"></div>
+    <div class="verdicts" id="verdicts" role="group" aria-label="判斷"></div>
+    <div class="own" id="own" hidden>
+      <span>你的標註：</span>
+      <span id="ownBoxes"></span>
+    </div>
+    <textarea id="note" placeholder="備註（選填）"></textarea>
+    <div class="reveal" id="reveal" hidden></div>
+    <div class="nav">
+      <button id="prev" type="button">← 上一題</button>
+      <span class="sub" id="pos"></span>
+      <button id="next" type="button">下一題 →</button>
+      <button id="nextOpen" type="button">下一個未審</button>
+    </div>
+  </main>
+
+  <aside>
+    <div class="panel">
+      <h2>進度</h2>
+      <div class="bar"><span id="progBar" style="width:0%"></span></div>
+      <div class="kv"><span>我已審</span><span id="progTxt">0 / 0</span></div>
+      <label class="kv"><span>顯示</span>
+        <select id="filter">
+          <option value="all">全部</option>
+          <option value="dis">只看不一致</option>
+          <option value="agree">只看一致</option>
+          <option value="open">只看我未審</option>
+        </select>
+      </label>
+    </div>
+    <div class="panel">
+      <h2>我的判斷統計（不一致的題目）</h2>
+      <div class="kv"><span>人工標註對</span><span id="sHuman">0</span></div>
+      <div class="kv"><span>LLM 對</span><span id="sLlm">0</span></div>
+      <div class="kv"><span>兩個都可以</span><span id="sBoth">0</span></div>
+      <div class="kv"><span>兩個都錯</span><span id="sNeither">0</span></div>
+      <div class="kv"><span>無法判斷</span><span id="sUnsure">0</span></div>
+    </div>
+    <div class="panel">
+      <h2>其他審查者</h2>
+      <div id="others" class="help">讀取中…</div>
+    </div>
+    <div class="panel help">
+      <h2>怎麼判斷</h2>
+      <ul>
+        <li>只判斷「這句話在對誰說」，不判斷需不需要回應。</li>
+        <li>「全體」＝對在場所有人說（包含對大家宣布、提問）。</li>
+        <li>兩個候選的來源（人工 / LLM）在你作答後才會顯示。</li>
+        <li>都不對時，請勾選你認為正確的對象。</li>
+      </ul>
+    </div>
+  </aside>
+</div>
+
+<script id="data" type="application/json">__REVIEW_DATA__</script>
+<script>
+(() => {
+  const DATA = JSON.parse(document.getElementById("data").textContent);
+  const ITEMS = DATA.items;
+  const $ = (id) => document.getElementById(id);
+  const state = { idx: 0, mine: {}, others: {}, uid: null, db: null, canWrite: true, filter: "all", local: false };
+  const LS_KEY = "addr-review-local-v1";
+
+  // deterministic A/B order per item so the source stays hidden until answered
+  function swap(id) { let h = 0; for (const c of id) h = (h * 31 + c.charCodeAt(0)) >>> 0; return (h & 1) === 1; }
+  function labelText(set, speakers) {
+    if (!set || !set.length) return "—";
+    if (set.includes("GROUP")) return "全體";
+    if (set.includes("UNKNOWN")) return "無法判斷";
+    return "對 " + set.join("、");
+  }
+  function sameSet(a, b) { return JSON.stringify([...(a || [])].sort()) === JSON.stringify([...(b || [])].sort()); }
+
+  function visible() {
+    return ITEMS.map((it, i) => i).filter((i) => {
+      const it = ITEMS[i], r = state.mine[it.id];
+      if (state.filter === "dis") return !it.agree;
+      if (state.filter === "agree") return it.agree;
+      if (state.filter === "open") return !r;
+      return true;
+    });
+  }
+
+  function render() {
+    const it = ITEMS[state.idx];
+    if (!it) return;
+    const r = state.mine[it.id];
+    $("meta").textContent = "";
+    for (const t of [it.meeting, "turn " + it.turn_id, "說話者 " + it.speaker, "DA " + (it.da_type || "?"), it.agree ? "人工與 LLM 一致" : "人工與 LLM 不一致"]) {
+      const s = document.createElement("span"); s.textContent = t; $("meta").append(s);
+    }
+    const convo = $("convo"); convo.textContent = "";
+    const add = (spk, text, target) => {
+      const row = document.createElement("div"); row.className = "line" + (target ? " target" : "");
+      const a = document.createElement("span"); a.className = "spk"; a.textContent = spk;
+      const b = document.createElement("span"); b.textContent = text;
+      row.append(a, b); convo.append(row);
+    };
+    it.context_before.forEach((c) => add(c.speaker, c.text, false));
+    add(it.speaker, it.text, true);
+    it.context_after.forEach((c) => add(c.speaker, c.text, false));
+
+    const sw = swap(it.id);
+    const A = sw ? { set: it.llm_majority, src: "LLM 多數決" } : { set: it.human, src: "AMI 人工標註" };
+    const B = sw ? { set: it.human, src: "AMI 人工標註" } : { set: it.llm_majority, src: "LLM 多數決" };
+    const cands = $("cands"); cands.textContent = "";
+    const mk = (tag, c) => {
+      const d = document.createElement("div"); d.className = "cand";
+      const t = document.createElement("span"); t.className = "tag"; t.textContent = tag;
+      const v = document.createElement("span"); v.className = "val"; v.textContent = labelText(c.set, it.speakers);
+      const w = document.createElement("span"); w.className = "who"; w.textContent = r ? c.src : "";
+      d.append(t, v, w); cands.append(d);
+    };
+    const options = it.agree
+      ? [["both", "標註正確"], ["neither", "標註錯誤"], ["unsure", "無法判斷"]]
+      : [["A", "A 對"], ["B", "B 對"], ["both", "兩個都可以"], ["neither", "兩個都錯"], ["unsure", "無法判斷"]];
+    if (it.agree) mk("候選標註（人工與 LLM 相同）", { set: it.human, src: "AMI 人工＝LLM 多數決" }); else { mk("候選 A", A); mk("候選 B", B); }
+    $("question").textContent = it.agree ? "黃色這句話是在對誰說？下面的標註對嗎？" : "黃色這句話是在對誰說？下面兩個候選標註哪一個對？";
+
+    const v = $("verdicts"); v.textContent = "";
+    for (const [key, text] of options) {
+      const b = document.createElement("button"); b.type = "button"; b.textContent = text;
+      b.setAttribute("aria-pressed", r && r.choice === key ? "true" : "false");
+      b.disabled = !state.canWrite && !state.local;
+      b.addEventListener("click", () => choose(key));
+      v.append(b);
+    }
+    const showOwn = r && r.choice === "neither";
+    $("own").hidden = !showOwn;
+    const boxes = $("ownBoxes"); boxes.textContent = "";
+    if (showOwn) {
+      const opts = it.speakers.filter((s) => s !== it.speaker).concat(["GROUP", "UNKNOWN"]);
+      for (const o of opts) {
+        const l = document.createElement("label");
+        const cb = document.createElement("input"); cb.type = "checkbox"; cb.id = "own-" + o; cb.checked = !!(r.own && r.own.includes(o));
+        cb.addEventListener("change", () => saveOwn());
+        l.append(cb, document.createTextNode(o === "GROUP" ? "全體" : o === "UNKNOWN" ? "無法判斷" : o));
+        boxes.append(l);
+      }
+    }
+    $("note").value = (r && r.note) || "";
+
+    const rev = $("reveal");
+    if (r) {
+      rev.hidden = false; rev.textContent = "";
+      const p = document.createElement("div");
+      p.append("來源：", Object.assign(document.createElement("b"), { textContent: it.agree ? "人工與 LLM 相同" : (sw ? "A = LLM 多數決，B = AMI 人工" : "A = AMI 人工，B = LLM 多數決") }));
+      const cnt = {};
+      for (const s of it.llm_samples) { const k = labelText(s, it.speakers); cnt[k] = (cnt[k] || 0) + 1; }
+      const q = document.createElement("div");
+      q.textContent = "LLM 5 次投票：" + Object.entries(cnt).map(([k, n]) => k + " ×" + n).join("、") + (it.llm_greedy ? "；單次（溫度 0）：" + labelText(it.llm_greedy, it.speakers) : "");
+      rev.append(p, q);
+      const o = Object.entries(state.others).map(([uid, m]) => m[it.id]).filter(Boolean);
+      if (o.length) {
+        const z = document.createElement("div");
+        z.textContent = "其他審查者：" + o.map((x) => ({ A: "A 對", B: "B 對", both: "都可以", neither: "都錯", unsure: "無法判斷" }[x.choice] || "?")).join("、");
+        rev.append(z);
+      }
+    } else rev.hidden = true;
+
+    const vis = visible();
+    const k = vis.indexOf(state.idx);
+    $("pos").textContent = (k >= 0 ? k + 1 : "—") + " / " + vis.length;
+    renderStats();
+  }
+
+  function renderStats() {
+    const done = ITEMS.filter((it) => state.mine[it.id]).length;
+    $("progTxt").textContent = done + " / " + ITEMS.length;
+    $("progBar").style.width = (100 * done / Math.max(1, ITEMS.length)).toFixed(1) + "%";
+    const s = { human: 0, llm: 0, both: 0, neither: 0, unsure: 0 };
+    for (const it of ITEMS) {
+      const r = state.mine[it.id]; if (!r || it.agree) continue;
+      const sw = swap(it.id);
+      if (r.choice === "A") s[sw ? "llm" : "human"]++;
+      else if (r.choice === "B") s[sw ? "human" : "llm"]++;
+      else s[r.choice]++;
+    }
+    $("sHuman").textContent = s.human; $("sLlm").textContent = s.llm; $("sBoth").textContent = s.both;
+    $("sNeither").textContent = s.neither; $("sUnsure").textContent = s.unsure;
+  }
+
+  function preferred(it, choice) {
+    if (it.agree) return choice === "both" ? "both_correct" : choice === "neither" ? "both_wrong" : "unsure";
+    const sw = swap(it.id);
+    if (choice === "A") return sw ? "llm" : "human";
+    if (choice === "B") return sw ? "human" : "llm";
+    return { both: "both_ok", neither: "both_wrong", unsure: "unsure" }[choice];
+  }
+
+  async function persist(it, rec) {
+    state.mine[it.id] = rec;
+    render();
+    if (state.local) { try { localStorage.setItem(LS_KEY, JSON.stringify(state.mine)); } catch (e) {} return; }
+    try {
+      await state.db.doc("reviews/" + state.uid).collection("items").doc(it.id).set(rec);
+    } catch (e) {
+      if (e && e.code === "invalid_argument") { state.canWrite = false; showBanner("你目前的權限無法儲存（需要 Contributor 以上）。判斷不會被保存。", "warn"); render(); }
+      else showBanner("儲存失敗：" + ((e && e.code) || "unknown") + "，請稍後再試。", "warn");
+    }
+  }
+
+  function choose(key) {
+    const it = ITEMS[state.idx];
+    const prev = state.mine[it.id] || {};
+    persist(it, { item: it.id, choice: key, preferred: preferred(it, key), own: key === "neither" ? (prev.own || []) : [],
+                  note: $("note").value || "", human: it.human, llm_majority: it.llm_majority, ts: Date.now() });
+  }
+  function saveOwn() {
+    const it = ITEMS[state.idx], r = state.mine[it.id]; if (!r) return;
+    const own = [...document.querySelectorAll("#ownBoxes input:checked")].map((x) => x.id.slice(4));
+    persist(it, { ...r, own, ts: Date.now() });
+  }
+  let noteTimer = null;
+  $("note").addEventListener("input", () => {
+    clearTimeout(noteTimer);
+    noteTimer = setTimeout(() => { const it = ITEMS[state.idx], r = state.mine[it.id]; if (r && r.note !== $("note").value) persist(it, { ...r, note: $("note").value, ts: Date.now() }); }, 800);
+  });
+
+  function go(step) {
+    const vis = visible(); if (!vis.length) return;
+    let k = vis.indexOf(state.idx);
+    k = k < 0 ? 0 : Math.min(vis.length - 1, Math.max(0, k + step));
+    state.idx = vis[k]; render(); window.scrollTo({ top: 0 });
+  }
+  $("prev").addEventListener("click", () => go(-1));
+  $("next").addEventListener("click", () => go(1));
+  $("nextOpen").addEventListener("click", () => {
+    for (let j = 1; j <= ITEMS.length; j++) { const i = (state.idx + j) % ITEMS.length; if (!state.mine[ITEMS[i].id]) { state.idx = i; render(); return; } }
+  });
+  $("filter").addEventListener("change", (e) => { state.filter = e.target.value; const vis = visible(); if (vis.length && !vis.includes(state.idx)) state.idx = vis[0]; render(); });
+  document.addEventListener("keydown", (e) => {
+    if (e.target.tagName === "TEXTAREA" || e.target.tagName === "INPUT") return;
+    if (e.key === "ArrowRight") go(1); else if (e.key === "ArrowLeft") go(-1);
+  });
+
+  function showBanner(text, kind) { const b = $("banner"); b.hidden = false; b.dataset.kind = kind || ""; b.textContent = text; }
+
+  $("subtitle").textContent = "AMI 會議・人工標註 vs " + DATA.labeler + "・共 " + ITEMS.length + " 題（不一致 " + DATA.n_disagree + "）";
+  render();
+
+  (async () => {
+    const [db, user] = await Promise.all([window.claude?.use?.("db") ?? null, window.claude?.use?.("user") ?? null]);
+    const uid = user ? await user.id() : null;
+    if (!db || !uid) {
+      state.local = true;
+      try { state.mine = JSON.parse(localStorage.getItem(LS_KEY) || "{}") || {}; } catch (e) { state.mine = {}; }
+      showBanner("目前無法連到共享資料庫，判斷只會存在這個瀏覽器裡。", "warn");
+      $("others").textContent = "無法讀取。";
+      render(); return;
+    }
+    state.db = db; state.uid = uid;
+    const canW = await user.can("data.write");
+    if (canW === false) { state.canWrite = false; showBanner("你目前只有檢視權限，無法儲存判斷。", "warn"); }
+    try { if (canW !== false) await db.doc("reviews/" + uid).set({ joined: Date.now() }); } catch (e) {}
+    db.doc("reviews/" + uid).collection("items").onSnapshot((snap) => {
+      const m = {}; snap.docs.forEach((d) => { m[d.id] = d.data(); }); state.mine = m; render();
+    });
+    const subs = {};
+    db.collection("reviews").onSnapshot(async (snap) => {
+      const ids = snap.docs.map((d) => d.id).filter((id) => id !== uid);
+      for (const id of ids) if (!subs[id]) subs[id] = db.doc("reviews/" + id).collection("items").onSnapshot((s) => {
+        const m = {}; s.docs.forEach((d) => { m[d.id] = d.data(); }); state.others[id] = m; renderOthers();
+      });
+      renderOthers();
+    });
+    async function renderOthers() {
+      const ids = Object.keys(state.others);
+      const el = $("others"); el.textContent = "";
+      if (!ids.length) { el.textContent = "目前只有你。"; return; }
+      const ps = await user.profiles(ids);
+      for (const id of ids) {
+        const row = document.createElement("div"); row.className = "kv";
+        const a = document.createElement("span"); a.textContent = ps[id]?.name || "另一位審查者";
+        const b = document.createElement("span"); b.textContent = Object.keys(state.others[id]).length + " 題";
+        row.append(a, b); el.append(row);
+      }
+      render();
+    }
+  })();
+})();
+</script>
