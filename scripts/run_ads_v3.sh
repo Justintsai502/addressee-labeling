@@ -18,7 +18,15 @@
 #SBATCH --output=logs/%x_%j.out
 #SBATCH --error=logs/%x_%j.err
 set -euo pipefail
-cd "${SLURM_SUBMIT_DIR:-$(dirname "$0")/..}"
+# relative paths are relative to where the command was run
+for v in TTV2_ROOT OUT IDS_FILE CONVS FIXED LOCK; do
+  if [[ -n "${!v:-}" && "${!v}" != /* ]]; then printf -v "$v" '%s' "$PWD/${!v}"; fi
+done
+# repo root: next to this script when run with bash; sbatch runs a spooled copy, so fall back to the submit dir
+here="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+if [[ -f "$here/scripts/00c_prepare_ttv2.py" ]]; then cd "$here"
+elif [[ -f "${SLURM_SUBMIT_DIR:-.}/scripts/00c_prepare_ttv2.py" ]]; then cd "$SLURM_SUBMIT_DIR"
+else echo "cannot find the addressee-labeling repo: sbatch from the repo root, or run with bash" >&2; exit 2; fi
 : "${TTV2_ROOT:?set TTV2_ROOT}" "${OUT:?set OUT}" "${PY_VLLM:?set PY_VLLM}" "${PY_NEMO:?set PY_NEMO}"
 PY_CPU="${PY_CPU:-python3}"
 MODEL="${MODEL:-Qwen/Qwen3-32B}"
